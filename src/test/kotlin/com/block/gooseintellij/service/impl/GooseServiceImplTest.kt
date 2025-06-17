@@ -1,5 +1,6 @@
 package com.block.gooseintellij.service.impl
 
+import com.block.gooseintellij.service.ConfigurationService
 import com.block.gooseintellij.service.SessionService
 import com.intellij.openapi.project.Project
 import kotlinx.coroutines.runBlocking
@@ -12,12 +13,23 @@ class GooseServiceImplTest {
     private lateinit var gooseService: GooseServiceImpl
     private lateinit var mockProject: Project
     private lateinit var mockSessionService: SessionService
+    private lateinit var mockConfigurationService: ConfigurationService
     
     @BeforeEach
     fun setup() {
         mockProject = mock(Project::class.java)
+        `when`(mockProject.basePath).thenReturn("/test/project")
+        `when`(mockProject.name).thenReturn("TestProject")
+        
         mockSessionService = mock(SessionService::class.java)
-        gooseService = GooseServiceImpl(mockProject, mockSessionService)
+        `when`(mockSessionService.createSession()).thenReturn("test-session-id")
+        `when`(mockSessionService.hasActiveSession()).thenReturn(true)
+        
+        mockConfigurationService = mock(ConfigurationService::class.java)
+        `when`(mockConfigurationService.getConfig("goose.server.url")).thenReturn("http://localhost:8000")
+        `when`(mockConfigurationService.getConfig("goose.server.apikey")).thenReturn("test-api-key")
+        
+        gooseService = GooseServiceImpl(mockProject, mockSessionService, mockConfigurationService)
     }
     
     @Test
