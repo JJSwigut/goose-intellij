@@ -2,10 +2,13 @@ package com.block.gooseintellij.service.impl
 
 import com.block.gooseintellij.client.GooseHttpClient
 import com.block.gooseintellij.client.GooseException
+import com.block.gooseintellij.config.GooseServerConfigurationService
+import com.block.gooseintellij.config.SecureApiKeyStorage
 import com.block.gooseintellij.context.IntelliJContextBridge
 import com.block.gooseintellij.service.ConfigurationService
 import com.block.gooseintellij.service.GooseService
 import com.block.gooseintellij.service.SessionService
+import com.intellij.openapi.components.service
 import com.intellij.openapi.diagnostic.Logger
 import com.intellij.openapi.project.Project
 import kotlinx.coroutines.flow.Flow
@@ -19,12 +22,10 @@ class GooseServiceImpl(
     
     companion object {
         private val LOG = Logger.getInstance(GooseServiceImpl::class.java)
-        private const val DEFAULT_BASE_URL = "http://127.0.0.1:8000"
-        private const val DEFAULT_API_KEY = "your-api-key-here"
-        private const val CONFIG_KEY_BASE_URL = "goose.server.url"
-        private const val CONFIG_KEY_API_KEY = "goose.server.apikey"
     }
     
+    private val serverConfigService by lazy { service<GooseServerConfigurationService>() }
+    private val secureStorage by lazy { SecureApiKeyStorage() }
     private lateinit var httpClient: GooseHttpClient
     private lateinit var contextBridge: IntelliJContextBridge
     private var currentSessionId: String? = null
@@ -34,12 +35,20 @@ class GooseServiceImpl(
             // Initialize context bridge
             contextBridge = IntelliJContextBridge(project)
             
-            // Get server configuration
-            val baseUrl = configurationService.getConfig(CONFIG_KEY_BASE_URL) ?: DEFAULT_BASE_URL
-            val apiKey = configurationService.getConfig(CONFIG_KEY_API_KEY) ?: DEFAULT_API_KEY
+            // Get server configuration from new configuration service
+            val serverUrl = serverConfigService.getServerUrl()
+            val apiKey = secureStorage.getApiKey() ?: ""
             
-            // Initialize HTTP client
-            httpClient = GooseHttpClient(baseUrl = baseUrl, apiKey = apiKey)
+            if (apiKey.isEmpty()) {
+                LOG.warn("No API key configured. Please configure Goose server settings.")
+                throw IllegalStateException("No API key configured. Please go to File → Settings → Tools → Goose Server to configure your connection.")
+            }
+            
+            // Initialize HTTP client with configured settings
+            httpClient = GooseHttpClient(
+                baseUrl = serverUrl,
+                apiKey = apiKey
+            )
             
             // Create session with project context
             runBlocking {
@@ -112,8 +121,8 @@ class GooseServiceImpl(
      * Updates server configuration
      */
     fun updateServerConfiguration(baseUrl: String, apiKey: String) {
-        configurationService.setConfig(CONFIG_KEY_BASE_URL, baseUrl)
-        configurationService.setConfig(CONFIG_KEY_API_KEY, apiKey)
+        serverConfigService.setServerUrl(baseUrl)
+        secureStorage.storeApiKey(apiKey)
         
         // Reinitialize HTTP client with new configuration
         httpClient = GooseHttpClient(baseUrl = baseUrl, apiKey = apiKey)
@@ -124,8 +133,8 @@ class GooseServiceImpl(
      * Gets current server configuration
      */
     fun getServerConfiguration(): Pair<String, String> {
-        val baseUrl = configurationService.getConfig(CONFIG_KEY_BASE_URL) ?: DEFAULT_BASE_URL
-        val apiKey = configurationService.getConfig(CONFIG_KEY_API_KEY) ?: DEFAULT_API_KEY
+        val baseUrl = serverConfigService.getServerUrl()
+        val apiKey = secureStorage.getApiKey() ?: ""
         return Pair(baseUrl, apiKey)
     }
     
