@@ -6,17 +6,15 @@ import com.intellij.openapi.actionSystem.CommonDataKeys
 import com.intellij.openapi.ui.Messages
 import com.intellij.openapi.diagnostic.Logger
 
-const val GOOSE_TEST_COMMAND_FORMAT = "Analyze the current repo for the correct location of unit tests. Generate tests for the following code %s\\n in file: %s\\n " +
+const val GOOSE_TEST_COMMAND_FORMAT = "Analyze the current repo for the correct location of unit tests. Generate tests for the following code. " +
   "If the test file for the code already exists, add the tests to the existing file."
 
 class AskGooseToGenerateTestsAction : AnAction() {
 
-    override fun actionPerformed(event: AnActionEvent) {
-        val project = event.project
+    private val logger = Logger.getInstance(AskGooseToGenerateTestsAction::class.java)
 
-        if (!GooseActionHelper.checkGooseAvailability(project)) return
-        
-        val gooseTerminal = GooseActionHelper.getGooseTerminal(event) ?: return
+    override fun actionPerformed(event: AnActionEvent) {
+        val project = event.project ?: return
 
         val editor = event.getData(CommonDataKeys.EDITOR)
         val selectedText = editor?.selectionModel?.selectedText
@@ -24,8 +22,9 @@ class AskGooseToGenerateTestsAction : AnAction() {
 
         if (selectedText != null && selectedText.isNotEmpty() && psiFile != null) {
             val filePath = psiFile.virtualFile.path
-            val command = String.format(GOOSE_TEST_COMMAND_FORMAT, selectedText.replace("\n", "\\n"), filePath)
-            GooseActionHelper.askGooseToGenerateTests(gooseTerminal, command)
+            GooseActionHelper.checkAndSendToGoose(event, GOOSE_TEST_COMMAND_FORMAT) {
+                Triple(selectedText, filePath, true)
+            }
         } else {
             Messages.showMessageDialog("No file or text selected.", "Warning", Messages.getWarningIcon())
         }
