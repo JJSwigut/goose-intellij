@@ -68,8 +68,14 @@
                        serviceImplementation="com.block.gooseintellij.service.impl.ConfigurationServiceImpl"/>
     <applicationService serviceInterface="com.block.gooseintellij.service.SessionService"
                        serviceImplementation="com.block.gooseintellij.service.impl.SessionServiceImpl"/>
+    <applicationService serviceInterface="com.block.gooseintellij.config.GooseServerConfigurationService"
+                       serviceImplementation="com.block.gooseintellij.config.GooseServerConfigurationService"/>
     <projectService serviceInterface="com.block.gooseintellij.service.GooseService"
                    serviceImplementation="com.block.gooseintellij.service.impl.GooseServiceImpl"/>
+    <applicationConfigurable 
+        instance="com.block.gooseintellij.config.GooseServerConfigurable"
+        displayName="Goose Server"
+        groupId="tools"/>
     <postStartupActivity implementation="com.block.gooseintellij.actions.GoosePluginStartupActivity"/>
     <toolWindow id="Goose Terminal"
         anchor="right"
