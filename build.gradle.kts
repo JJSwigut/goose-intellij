@@ -4,6 +4,7 @@ import org.jetbrains.intellij.platform.gradle.models.ProductRelease
 plugins {
   id("java")
   id("org.jetbrains.kotlin.jvm") version "2.1.0-Beta2"
+  id("org.jetbrains.kotlin.plugin.serialization") version "2.1.0-Beta2"
   id("org.jetbrains.intellij.platform") version "2.1.0"
 }
 
@@ -26,6 +27,10 @@ kotlin {
 dependencies {
   implementation("org.jetbrains.kotlin:kotlin-stdlib-jdk8")
   implementation("org.commonmark:commonmark:0.22.0")
+  implementation("com.squareup.okhttp3:okhttp:4.12.0")
+  implementation("com.squareup.okhttp3:okhttp-sse:4.12.0")
+  implementation("org.jetbrains.kotlinx:kotlinx-coroutines-core:1.7.3")
+  implementation("org.jetbrains.kotlinx:kotlinx-serialization-json:1.6.0")
   testImplementation("org.junit.jupiter:junit-jupiter:5.8.1")
   testImplementation("org.mockito:mockito-core:3.12.4")
   intellijPlatform {
