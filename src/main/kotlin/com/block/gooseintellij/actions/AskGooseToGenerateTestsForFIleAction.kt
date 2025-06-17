@@ -14,17 +14,15 @@ class AskGooseToGenerateTestsForFileAction : AnAction() {
     override fun actionPerformed(event: AnActionEvent) {
         logger.info("ActionPerformed triggered")
 
-        val project = event.project
-
-        if (!GooseActionHelper.checkGooseAvailability(project)) return
-
+        val project = event.project ?: return
         val virtualFile = event.getData(CommonDataKeys.VIRTUAL_FILE)
         logger.info("Project: $project, VirtualFile: $virtualFile")
 
         if (virtualFile != null) {
-            val gooseTerminal = GooseActionHelper.getGooseTerminal(event)
-            val question = "Analyze the current repo for the correct location of unit tests. Generate unit tests for the file: ${virtualFile.path}?"
-            GooseActionHelper.askGooseToGenerateTests(gooseTerminal, question)
+            val commandFormat = "Analyze the current repo for the correct location of unit tests. Generate unit tests for the file."
+            GooseActionHelper.checkAndSendToGoose(event, commandFormat) {
+                Triple(null, virtualFile.path, false)
+            }
         } else {
             Messages.showMessageDialog(
                 "No file or directory selected.", "Warning", Messages.getWarningIcon()

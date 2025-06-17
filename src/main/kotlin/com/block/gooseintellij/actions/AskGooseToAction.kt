@@ -17,6 +17,7 @@ class AskGooseToAction : AnAction() {
     val project = event.project ?: return
     val editor = event.getData(CommonDataKeys.EDITOR) as? EditorEx
     val virtualFile = event.getData(CommonDataKeys.VIRTUAL_FILE)
+    
     editor?.let {
       val manager = EditorComponentInlaysManager.from(editor)
       // Close any existing inline chat panels
@@ -29,7 +30,7 @@ class AskGooseToAction : AnAction() {
       
       val chatPanel = InlineChatPanel(it, event, inlayRef) { userInput ->
         val selectedText = editor.selectionModel.selectedText
-        val enhancedPromptTemplate = "$userInput. Context: %s in file: $%s"
+        val enhancedPromptTemplate = "$userInput"
         sendToGoose(event, enhancedPromptTemplate, selectedText, event.getData(CommonDataKeys.PSI_FILE)?.virtualFile?.path, true)
       }
       
@@ -40,7 +41,7 @@ class AskGooseToAction : AnAction() {
       viewport.dispatchEvent(java.awt.event.ComponentEvent(viewport, java.awt.event.ComponentEvent.COMPONENT_RESIZED))
     } ?: virtualFile?.let {
       val userInput = fetchUserInput(project) ?: return
-      val enhancedPromptTemplate = "$userInput. Context: file: $%s"
+      val enhancedPromptTemplate = userInput
       sendToGoose(event, enhancedPromptTemplate, "", virtualFile.path, false)
     } ?: showErrorMessage(project)
   }
