@@ -1,7 +1,9 @@
 package com.block.gooseintellij.client
 
 import com.block.gooseintellij.model.*
+import kotlinx.coroutines.channels.awaitClose
 import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.callbackFlow
 import kotlinx.coroutines.flow.flow
 import kotlinx.serialization.json.Json
 import okhttp3.*
@@ -95,7 +97,7 @@ class GooseHttpClient(
     /**
      * Streams a message using the actual Goose /reply endpoint
      */
-    suspend fun replyToGoose(prompt: String, workingDirectory: String): Flow<String> = flow {
+    suspend fun replyToGoose(prompt: String, workingDirectory: String): Flow<String> = callbackFlow {
         val replyRequest = GooseReplyRequest(
             prompt = prompt,
             session_working_dir = workingDirectory
@@ -110,41 +112,40 @@ class GooseHttpClient(
             .addHeader("Accept", "text/event-stream")
             .build()
 
-        suspendCoroutine<Unit> { continuation ->
-            val eventSource = EventSources.createFactory(httpClient).newEventSource(
-                request = request,
-                listener = object : EventSourceListener() {
-                    override fun onOpen(eventSource: EventSource, response: Response) {
-                        // Connection opened successfully
-                    }
+        val eventSource = EventSources.createFactory(httpClient).newEventSource(
+            request = request,
+            listener = object : EventSourceListener() {
+                override fun onOpen(eventSource: EventSource, response: Response) {
+                    // Connection opened successfully
+                }
 
-                    override fun onEvent(
-                        eventSource: EventSource,
-                        id: String?,
-                        type: String?,
-                        data: String
-                    ) {
-                        try {
-                            // Emit the data chunk directly
-                            // Note: This is a simplified implementation
-                            // In practice, you'd use a Channel or similar for proper flow emission
-                        } catch (e: Exception) {
-                            eventSource.cancel()
-                            continuation.resumeWithException(e)
-                        }
-                    }
-
-                    override fun onClosed(eventSource: EventSource) {
-                        continuation.resume(Unit)
-                    }
-
-                    override fun onFailure(eventSource: EventSource, t: Throwable?, response: Response?) {
-                        continuation.resumeWithException(
-                            t ?: GooseApiException("Stream failed: ${response?.message}")
-                        )
+                override fun onEvent(
+                    eventSource: EventSource,
+                    id: String?,
+                    type: String?,
+                    data: String
+                ) {
+                    try {
+                        // Emit each data chunk to the flow
+                        trySend(data)
+                    } catch (e: Exception) {
+                        close(e)
                     }
                 }
-            )
+
+                override fun onClosed(eventSource: EventSource) {
+                    close()
+                }
+
+                override fun onFailure(eventSource: EventSource, t: Throwable?, response: Response?) {
+                    close(t ?: GooseApiException("Stream failed: ${response?.message}"))
+                }
+            }
+        )
+
+        // Clean up when the flow is cancelled
+        awaitClose {
+            eventSource.cancel()
         }
     }
 

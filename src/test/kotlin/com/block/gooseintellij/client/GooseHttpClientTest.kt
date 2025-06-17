@@ -163,26 +163,19 @@ class GooseHttpClientTest {
     }
 
     @Test
-    fun `sendMessage should return response message on success`() = runBlocking {
+    fun `askGoose should return response message on success`() = runBlocking {
         // Given
-        val sessionId = "test-session"
         val message = "Hello, Goose!"
+        val workingDir = "/test/project"
 
-        val responseJson = """
-            {
-                "message": "Hello! How can I help you?",
-                "sessionId": "test-session",
-                "timestamp": "2024-01-01T00:00:00Z",
-                "status": "success"
-            }
-        """.trimIndent()
+        val responseText = "Hello! How can I help you?"
 
         val mockResponse = Response.Builder()
-            .request(Request.Builder().url("$testBaseUrl/sessions/$sessionId/chat").build())
+            .request(Request.Builder().url("$testBaseUrl/ask").build())
             .protocol(Protocol.HTTP_1_1)
             .code(200)
             .message("OK")
-            .body(responseJson.toResponseBody("application/json".toMediaType()))
+            .body(responseText.toResponseBody("text/plain".toMediaType()))
             .build()
 
         `when`(mockHttpClient.newCall(any())).thenReturn(mockCall)
@@ -193,34 +186,24 @@ class GooseHttpClientTest {
         }.`when`(mockCall).enqueue(any())
 
         // When
-        val response = gooseHttpClient.sendMessage(sessionId, message)
+        val response = gooseHttpClient.askGoose(message, workingDir)
 
         // Then
         assert(response == "Hello! How can I help you?")
     }
 
     @Test
-    fun `sendMessage should throw GooseApiException on error response`() = runBlocking {
+    fun `askGoose should throw GooseApiException on error response`() = runBlocking {
         // Given
-        val sessionId = "test-session"
         val message = "Hello, Goose!"
-
-        val responseJson = """
-            {
-                "message": "",
-                "sessionId": "test-session",
-                "timestamp": "2024-01-01T00:00:00Z",
-                "status": "error",
-                "error": "Session not found"
-            }
-        """.trimIndent()
+        val workingDir = "/test/project"
 
         val mockResponse = Response.Builder()
-            .request(Request.Builder().url("$testBaseUrl/sessions/$sessionId/chat").build())
+            .request(Request.Builder().url("$testBaseUrl/ask").build())
             .protocol(Protocol.HTTP_1_1)
-            .code(200)
-            .message("OK")
-            .body(responseJson.toResponseBody("application/json".toMediaType()))
+            .code(400)
+            .message("Bad Request")
+            .body("Invalid request".toResponseBody())
             .build()
 
         `when`(mockHttpClient.newCall(any())).thenReturn(mockCall)
@@ -232,18 +215,18 @@ class GooseHttpClientTest {
 
         // When & Then
         assertThrows<GooseApiException> {
-            runBlocking { gooseHttpClient.sendMessage(sessionId, message) }
+            runBlocking { gooseHttpClient.askGoose(message, workingDir) }
         }
     }
 
     @Test
-    fun `sendMessage should throw GooseServerException on 500 response`() = runBlocking {
+    fun `askGoose should throw GooseServerException on 500 response`() = runBlocking {
         // Given
-        val sessionId = "test-session"
         val message = "Hello, Goose!"
+        val workingDir = "/test/project"
 
         val mockResponse = Response.Builder()
-            .request(Request.Builder().url("$testBaseUrl/sessions/$sessionId/chat").build())
+            .request(Request.Builder().url("$testBaseUrl/ask").build())
             .protocol(Protocol.HTTP_1_1)
             .code(500)
             .message("Internal Server Error")
@@ -259,7 +242,7 @@ class GooseHttpClientTest {
 
         // When & Then
         assertThrows<GooseServerException> {
-            runBlocking { gooseHttpClient.sendMessage(sessionId, message) }
+            runBlocking { gooseHttpClient.askGoose(message, workingDir) }
         }
     }
 }

@@ -69,21 +69,12 @@ class GooseHttpClientIntegrationTest {
     }
 
     @Test
-    fun `should send a message to a session`() = runBlocking {
+    fun `should send a message using askGoose endpoint`() = runBlocking {
         try {
-            // First create a session
-            val context = GooseContext(
-                projectPath = "/Users/jswigut/Development/goose-intellij",
-                projectName = "goose-intellij-test",
-                language = "kotlin"
-            )
-            
-            val sessionId = client.createSession(context)
-            println("✅ Created test session: $sessionId")
-            
-            // Send a simple message
+            // Send a simple message using the /ask endpoint
             val message = "Hello! This is a test message from the HTTP client integration test."
-            val response = client.sendMessage(sessionId, message)
+            val workingDir = "/Users/jswigut/Development/goose-intellij"
+            val response = client.askGoose(message, workingDir)
             
             println("✅ Successfully sent message and received response:")
             println("📤 Sent: $message")
